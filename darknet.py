@@ -146,6 +146,30 @@ def create_modules(blocks):
     return (net_info, module_list)
             
 
+class Darknet(nn.Module):
+    def __init__(self, cfg_path):
+        super(Darknet, self).__init__()
+        self.blocks = parse_cfg(cfg_path)
+        self.net_info, self.module_list = create_modules(self.blocks)
+
+    
+    def forward(self, x):
+        modules = self.blocks[1:]
+        outputs = {}
+
+        write = 0
+        for i, module in enumerate(modules):
+            module_type = module['type']
+
+            if module_type == 'convolutional' or \
+                module_type == 'upsample':
+                x = self.module_list[i](x)
+
+            elif module_type == 'route':
+                layers = module['layers']
+                layers = [int(a) for a in layers]
+
+                
 
 if __name__ == "__main__":
     blocks = parse_cfg('cfg/yolov3.cfg')
