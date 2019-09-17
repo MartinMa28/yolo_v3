@@ -4,6 +4,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import cv2
+
+from utils import predict_transform
 
 
 class EmptyLayer(nn.Module):
@@ -187,8 +190,36 @@ class Darknet(nn.Module):
                 from_ = int(module['from'])
                 x = outputs[i - 1] + outputs[i + from_]
 
+            elif module_type == 'yolo':
+                anchors = self.module_list[i][0].anchors
+                # get the input dimension
+                input_dim = int(self.net_info['height'])
+                # get the number of classes
+                num_classes = int(module['classes'])
 
-                
+                # transform
+                x = predict_transform(x, input_dim, anchors, num_classes)
+                if not write:
+                    detections = x
+                    write = 1
+                else:
+                    detection = torch.cat((detections, x), 1)
+
+            outputs[i] = x
+        
+        return detections
+
+
+def get_test_input():
+    img = cv2.imread('dog-cycle-car.png')
+    img = cv2.resize(img, (416, 416))
+    # BGR -> RGB, HxWxC -> CxHxW
+    img = img[:, :,::-1].transpose((2, 0, 1))
+    img = img[np.newaxis, :, :, :] / 255
+    img = torch.from_numpy(img).float()
+
+    return img
+
 
 if __name__ == "__main__":
     blocks = parse_cfg('cfg/yolov3.cfg')

@@ -48,3 +48,10 @@ def predict_transform(prediction, input_dim, anchors, num_classes):
 
     anchors = anchors.repeat(grid_size * grid_size, 1).unsqueeze(0)
     prediction[:, :, 2: 4] = torch.exp(prediction[:, :, 2: 4]) * anchors
+
+    # put the class score through sigmoid
+    prediction[:, :, 5: 5 + num_classes] = torch.sigmoid((prediction[:, :, 5: 5 + num_classes]))
+
+    prediction[:, :, :4] *= stride
+
+    return prediction
