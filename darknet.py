@@ -133,7 +133,7 @@ def create_modules(blocks):
 
             anchors = b['anchors'].split(',')
             anchors = [int(x) for x in anchors]
-            anchors = [(anchors[i], anchors[i + 1]) for i in range(len(anchors))[::2]]
+            anchors = [(anchors[i], anchors[i + 1]) for i in range(0, len(anchors), 2)]
             anchors = [anchors[i] for i in mask]
 
             detection = DetectionLayer(anchors)
@@ -169,9 +169,27 @@ class Darknet(nn.Module):
                 layers = module['layers']
                 layers = [int(a) for a in layers]
 
+                if layers[0] > 0:
+                    layers[0] = layers[0] - i
+
+                if len(layers) == 1:
+                    x = outputs[i + layers[0]]
+                else:
+                    if layers[1] > 0:
+                        layers[1] = layers[1] - i
+
+                    map1 = outputs[i + layers[0]]
+                    map2 = outputs[i + layers[1]]
+
+                    x = torch.cat((map1, map2), 1)
+            
+            elif module_type == 'shortcut':
+                from_ = int(module['from'])
+                x = outputs[i - 1] + outputs[i + from_]
+
+
                 
 
 if __name__ == "__main__":
     blocks = parse_cfg('cfg/yolov3.cfg')
-    for b in blocks:
-        print(b)
+    print(create_modules(blocks))
