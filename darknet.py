@@ -98,7 +98,7 @@ def create_modules(blocks):
             
         elif b['type'] == 'upsample':
             stride = int(b['stride'])
-            upsample = nn.Upsample(scale_factor=stride, mode='bilinear')
+            upsample = nn.Upsample(scale_factor=stride, mode='bilinear', align_corners=True)
             module.add_module('upsample_{}'.format(idx), upsample)
 
         elif b['type'] == 'route':
