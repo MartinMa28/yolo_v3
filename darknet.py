@@ -81,7 +81,7 @@ def create_modules(blocks):
             stride = int(b['stride'])
 
             if padding > 0:
-                padding = (kernel_size - 1) / 2
+                padding = (kernel_size - 1) // 2
             
             # Add the convolutional layer
             conv = nn.Conv2d(input_filters, filters, kernel_size=kernel_size,
@@ -169,7 +169,7 @@ class Darknet(nn.Module):
                 x = self.module_list[i](x)
 
             elif module_type == 'route':
-                layers = module['layers']
+                layers = module['layers'].split(',')
                 layers = [int(a) for a in layers]
 
                 if layers[0] > 0:
@@ -203,7 +203,7 @@ class Darknet(nn.Module):
                     detections = x
                     write = 1
                 else:
-                    detection = torch.cat((detections, x), 1)
+                    detections = torch.cat((detections, x), 1)
 
             outputs[i] = x
         
@@ -222,5 +222,10 @@ def get_test_input():
 
 
 if __name__ == "__main__":
-    blocks = parse_cfg('cfg/yolov3.cfg')
-    print(create_modules(blocks))
+    model = Darknet('cfg/yolov3.cfg')
+    model.cuda()
+    inp = get_test_input()
+    if torch.cuda.is_available():
+        inp = inp.cuda()
+    pred = model(inp)
+    print(pred.shape)
