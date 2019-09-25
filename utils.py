@@ -55,3 +55,41 @@ def predict_transform(prediction, input_dim, anchors, num_classes):
     prediction[:, :, :4] *= stride
 
     return prediction
+
+
+def write_results(prediction, confidence, num_classes, nms_conf = 0.4):
+    # The fifth index of prediction output is the object confidence.
+    # If it's below the threshold, set the values of its attributes to zero.
+    
+    conf_mask = (prediction[:, :, 4] > confidence).float().unsqueeze(2)
+    prediction = prediction * conf_mask
+
+    box_corner = prediction.new(prediction.shape)
+    box_corner[:,:,0] = (prediction[:,:,0] - prediction[:,:,2]/2)
+    box_corner[:,:,1] = (prediction[:,:,1] - prediction[:,:,3]/2)
+    box_corner[:,:,2] = (prediction[:,:,0] + prediction[:,:,2]/2) 
+    box_corner[:,:,3] = (prediction[:,:,1] + prediction[:,:,3]/2)
+    prediction[:,:,:4] = box_corner[:,:,:4]
+    
+    batch_size = prediction.size(0)
+
+    write = False
+
+    for idx in range(batch_size):
+        # get the image tensor
+        image_pred = prediction[idx]
+
+        max_conf, max_conf_score = torch.max(image_pred[:, 5: 5 + num_classes], 1)
+        max_conf = max_conf.float().unsqueeze(1)
+        max_conf_score = max_conf_score.float().unsqueeze(1)
+        seq = (image_pred[:, :5], max_conf, max_conf_score)
+        image_pred = torch.cat(seq, 1)
+
+        non_zero_ind = (torch.nonzero(image_pred[:, 4]))
+        try:
+            image_pred_ = image_pred[non_zero_ind.squeeze(), :].view(-1, 7)
+        except:
+            continue
+
+        if image_pred_.shape == 0:
+            continue
